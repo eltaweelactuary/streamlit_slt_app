@@ -1,0 +1,10 @@
+{
+  "pk-dictionary-mapping.json": {
+    "date": "2026-01-18T14:53:01Z",
+    "url": "https://raw.githubusercontent.com/sign-language-translator/sign-language-datasets/8bb3ac7641c9be94faf75765c8489e5ee758fbba/parallel_texts/pk-dictionary-mapping.json"
+  },
+  "text-preprocessing.json": {
+    "date": "2026-01-18T14:53:01Z",
+    "url": "https://raw.githubusercontent.com/sign-language-translator/sign-language-datasets/c7fbcb4d53ad4b5c04c43ed62cd98c2a6fa07f63/text-preprocessing.json"
+  }
+}

@@ -1,0 +1,37 @@
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+.env
+
+# MediaPipe & Streamlit
+.streamlit/
+
+# Assets (Optional: Keep model if small, ignore videos if too large)
+# psl_cv_assets/
+# videos/
+# *.mp4
+
+# But we WANT to commit the classifier if it exists for faster startup
+# !psl_classifier.pkl
