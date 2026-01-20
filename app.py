@@ -3,6 +3,7 @@ import builtins
 import tempfile
 import streamlit as st
 import shutil
+import cv2
 
 # ==============================================================================
 # --- CRITICAL: GLOBAL MONKEYPATCH FOR STREAMLIT CLOUD PERMISSIONS ---
@@ -97,7 +98,6 @@ except:
     pass
 # ==============================================================================
 
-import cv2
 import numpy as np
 import pickle
 from pathlib import Path
