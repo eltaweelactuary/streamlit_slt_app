@@ -201,16 +201,21 @@ class SignLanguageCore:
         return None
 
     def speech_to_text(self):
-        """Convert live speech to text for translation input"""
-        r = sr.Recognizer()
-        with sr.Microphone() as source:
-            print("🎤 Listening...")
-            audio = r.listen(source)
-            try:
+        """Convert live speech to text for translation input (Graceful handles server lack of mic)"""
+        try:
+            import speech_recognition as sr
+            r = sr.Recognizer()
+            with sr.Microphone() as source:
+                print("🎤 Listening...")
+                audio = r.listen(source, timeout=5, phrase_time_limit=10)
                 text = r.recognize_google(audio)
                 return text
-            except:
-                return None
+        except (OSError, ImportError) as e:
+            print(f"🎙️ Mic/Speech Error: {e}")
+            return "ERROR: Microphone not available on server. Please type your text."
+        except Exception as e:
+            print(f"🎙️ Speech Error: {e}")
+            return None
 
 class DigitalHumanRenderer:
     """

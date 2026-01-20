@@ -215,14 +215,23 @@ def main():
                 v_clips = []
                 dna_list = []
                 
+                status_placeholder = st.empty() # Added for dynamic status updates
                 for w in words:
                     if w in PSL_VOCABULARY:
                         try:
+                            status_placeholder.info(f"🔍 Processing: **{w}**") # Changed to use placeholder
                             clip = translator.translate(PSL_VOCABULARY[w])
                             v_clips.append(clip)
                             dna = core.get_word_dna(w)
-                            if dna is not None: dna_list.append(dna)
-                        except: pass
+                            if dna is not None:
+                                dna_list.append(dna)
+                                status_placeholder.success(f"✅ DNA for **{w}** ready.") # Changed to use placeholder
+                            else:
+                                status_placeholder.warning(f"⚠️ DNA for **{w}** missing in dictionary.") # Changed to use placeholder
+                        except Exception as e:
+                            status_placeholder.error(f"❌ Error synthesizing **{w}**: {e}") # Changed to use placeholder
+                    else:
+                        status_placeholder.warning(f"📖 Word **{w}** not in vocabulary.") # Changed to use placeholder
                 
                 if v_clips:
                     col_orig, col_av = st.columns(2)
