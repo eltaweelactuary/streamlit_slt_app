@@ -42,6 +42,10 @@ class SignLanguageCore:
     def extract_landmarks_from_video(self, video_path, max_frames=60, return_sequence=True):
         """Extract skeletal landmarks sequence using MediaPipe Holistic"""
         cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            print(f"🚫 Could not open video file: {video_path}")
+            return None
+            
         features_sequence = []
         
         with self.mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
@@ -60,41 +64,44 @@ class SignLanguageCore:
                 
                 def get_coords(res_attr, num_pts=21):
                     if not res_attr: return [0.0] * (num_pts * 3)
-                    # For face, we might have 468, but we take a subset or all
                     pts = res_attr.landmark[:num_pts]
                     return [c for lm in pts for c in [lm.x - ref_x, lm.y - ref_y, lm.z]]
 
                 frame_features = []
-                frame_features.extend(get_coords(results.left_hand_landmarks, 21))  # 63
-                frame_features.extend(get_coords(results.right_hand_landmarks, 21)) # 63
-                frame_features.extend(get_coords(results.pose_landmarks, 25))       # 75
-                # Key Face Landmarks: Lips(outer), Eyes, Eyebrows (~40 pts -> 120 values)
-                frame_features.extend(get_coords(results.face_landmarks, 40))       # 120
+                frame_features.extend(get_coords(results.left_hand_landmarks, 21))
+                frame_features.extend(get_coords(results.right_hand_landmarks, 21))
+                frame_features.extend(get_coords(results.pose_landmarks, 25))
+                frame_features.extend(get_coords(results.face_landmarks, 40))
                 
                 features_sequence.append(frame_features)
                 count += 1
         
         cap.release()
-        if not features_sequence: return None
-        if return_sequence:
-            return np.array(features_sequence)
-        return np.mean(features_sequence, axis=0)
+        return np.array(features_sequence) if features_sequence else None
 
     def build_landmark_dictionary(self, translator):
         """Build the CLR Dictionary with Full Temporal Sequences"""
-        print("🏗️ Building Temporal Landmark Dictionary...")
+        print(f"🏗️ Building Temporal Landmark Dictionary for {len(self.vocabulary)} words...")
         for word, urdu in self.vocabulary.items():
             temp_v = self.videos_dir / f"{word}.mp4"
             if not temp_v.exists():
+                print(f"📥 Downloading video for: {word}...")
                 try:
                     clip = translator.translate(urdu)
                     clip.save(str(temp_v), overwrite=True)
-                except: continue
-                
+                    print(f"💾 Saved video to {temp_v}")
+                except Exception as e:
+                    print(f"❌ Failed to translate/save '{word}': {e}")
+                    continue
+            
+            print(f"🎥 Extracting landmarks for: {word}...")
             sequence = self.extract_landmarks_from_video(temp_v, return_sequence=True)
             if sequence is not None:
+                print(f"✨ Detected {len(sequence)} frames of landmarks for '{word}'.")
                 self.landmark_dict[word] = sequence
                 np.save(self.landmarks_dir / f"{word}.npy", sequence)
+            else:
+                print(f"⚠️ No landmarks detected for '{word}'.")
         
         print(f"✅ Temporal Dictionary built with {len(self.landmark_dict)} word sequences.")
 
