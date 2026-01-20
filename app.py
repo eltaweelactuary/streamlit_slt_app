@@ -39,12 +39,19 @@ MODEL_PATH = "./psl_classifier.pkl"
 # ===================== INITIALIZATION =====================
 @st.cache_resource
 def load_slt_engine():
-    """Load SLT translation engine"""
     import sign_language_translator as slt
     
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(VIDEOS_DIR, exist_ok=True)
     slt.Assets.set_root_dir(DATA_DIR)
+    
+    # Force download necessary assets for PSL
+    with st.spinner("📥 Downloading sign language assets (first time only)..."):
+        try:
+            # Download psl videos and required models
+            slt.Assets.download(".*psl.*")
+        except Exception as e:
+            st.warning(f"⚠️ Asset download notice: {e}")
     
     translator = slt.models.ConcatenativeSynthesis(
         text_language="urdu",
