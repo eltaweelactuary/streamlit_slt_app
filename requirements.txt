@@ -3,13 +3,13 @@
 
 streamlit>=1.28.0
 opencv-python-headless>=4.8.0
-# Unpin mediapipe to allow getting the best binary for Python 3.12
 mediapipe>=0.10.0
 sign-language-translator>=0.0.8
 scikit-learn>=1.3.0
-# Update numpy constraints for Python 3.12 compatibility
 numpy>=1.26.0,<2.0
 pandas>=2.0
 scipy>=1.11
-# Force protobuf to be compatible with both
 protobuf>=3.20.0
+# Using exact version required by SLT to avoid conflicts
+torch==2.2.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.17.1 --index-url https://download.pytorch.org/whl/cpu
