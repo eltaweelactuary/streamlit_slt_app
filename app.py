@@ -48,9 +48,25 @@ def load_slt_engine():
     # Force download necessary assets for PSL
     with st.spinner("📥 Downloading sign language assets (first time only)..."):
         try:
-            # Download psl videos and required models
-            slt.Assets.download(".*psl.*")
+            # 🛡️ Monkeypatch: Prevent writing to read-only config on Streamlit Cloud
+            from unittest.mock import patch
+            import builtins
+            
+            original_open = builtins.open
+            
+            def safe_open(file, mode='r', *args, **kwargs):
+                # If trying to write to the read-only config file, return a dummy buffer
+                if "extra-urls.json" in str(file) and ('w' in mode or 'a' in mode or '+' in mode):
+                    from io import StringIO
+                    return StringIO()
+                return original_open(file, mode, *args, **kwargs)
+
+            # Apply the patch only during download
+            with patch('builtins.open', side_effect=safe_open):
+                slt.Assets.download(".*psl.*")
+                
         except Exception as e:
+            # Still catch other errors to avoid crashing
             st.warning(f"⚠️ Asset download notice: {e}")
     
     translator = slt.models.ConcatenativeSynthesis(
@@ -269,6 +285,16 @@ def main():
     st.title("🤟 Sign Language Translator")
     st.markdown("**Bidirectional Translation:** Text ↔ Pakistani Sign Language (PSL)")
     st.markdown("---")
+    
+    # Architecture Explanation
+    with st.expander("📚 System Architecture: Unified Data Representation"):
+        st.markdown("""
+        The system relies on a **Common Landmark Benchmark**:
+        1.  **Text → Video:** Maps text to the Benchmark Dictionary to retrieve **Digital Human Ready** representations.
+        2.  **Video → Text:** Extracts landmarks and compares them against the **Same Benchmark Benchmark** for recognition.
+        
+        *Unified Core for Bi-directional Translation.*
+        """)
     
     # Load engines
     with st.spinner("⏳ Loading translation engine..."):
