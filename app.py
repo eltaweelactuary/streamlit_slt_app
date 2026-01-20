@@ -7,50 +7,78 @@ import shutil
 # ==============================================================================
 # --- CRITICAL: GLOBAL MONKEYPATCH FOR STREAMLIT CLOUD PERMISSIONS ---
 # ==============================================================================
-# We must redirect any write operations targeting the site-packages directory
-# to a writable temporary directory. Streamlit Cloud's env is read-only for venv.
-
 WRITABLE_BASE = os.path.join(tempfile.gettempdir(), "slt_persistent_storage")
 os.makedirs(WRITABLE_BASE, exist_ok=True)
 
 _orig_makedirs = os.makedirs
 _orig_mkdir = os.mkdir
 _orig_open = builtins.open
+_orig_rename = os.rename
+_orig_replace = os.replace
+_orig_exists = os.path.exists
+_orig_isfile = os.path.isfile
+_orig_listdir = os.listdir
 
-def _redirect_if_needed(path):
+def _get_shadow_path(path):
     if not path: return path
     p = str(path).replace("\\", "/")
-    # Detect attempts to write to the sign_language_translator package directory
     if "site-packages/sign_language_translator" in p:
-        # Extract relative path to maintain structure
         parts = p.split("site-packages/sign_language_translator/")
-        rel = parts[1] if len(parts) > 1 else "root"
-        new_path = os.path.join(WRITABLE_BASE, rel)
-        # Ensure parent dir exists in the new location
-        _orig_makedirs(os.path.dirname(new_path), exist_ok=True)
-        return new_path
+        rel = parts[1] if len(parts) > 1 else ""
+        return os.path.join(WRITABLE_BASE, rel)
+    return None
+
+def _redirect_read_write(path, is_write=False):
+    shadow = _get_shadow_path(path)
+    if shadow:
+        if is_write or _orig_exists(shadow):
+            parent = os.path.dirname(shadow)
+            if parent and not _orig_exists(parent):
+                _orig_makedirs(parent, exist_ok=True)
+            return shadow
     return path
 
 def _patched_makedirs(name, mode=0o777, exist_ok=False):
-    return _orig_makedirs(_redirect_if_needed(name), mode, exist_ok)
+    return _orig_makedirs(_redirect_read_write(name, is_write=True), mode, exist_ok)
 
 def _patched_mkdir(path, mode=0o777, *args, **kwargs):
-    return _orig_mkdir(_redirect_if_needed(path), mode, *args, **kwargs)
+    return _orig_mkdir(_redirect_read_write(path, is_write=True), mode, *args, **kwargs)
 
 def _patched_open(file, *args, **kwargs):
     mode = args[0] if args else kwargs.get('mode', 'r')
-    # Only redirect if it's a 'write' mode
-    if any(m in mode for m in ('w', 'a', '+', 'x')):
-        file = _redirect_if_needed(file)
-    return _orig_open(file, *args, **kwargs)
+    is_write = any(m in mode for m in ('w', 'a', '+', 'x'))
+    return _orig_open(_redirect_read_write(file, is_write=is_write), *args, **kwargs)
 
-# Apply global patches BEFORE any other imports
+def _patched_rename(src, dst, *args, **kwargs):
+    return _orig_rename(_redirect_read_write(src), _redirect_read_write(dst, is_write=True), *args, **kwargs)
+
+def _patched_replace(src, dst, *args, **kwargs):
+    return _orig_replace(_redirect_read_write(src), _redirect_read_write(dst, is_write=True), *args, **kwargs)
+
+def _patched_exists(path):
+    shadow = _get_shadow_path(path)
+    if shadow and _orig_exists(shadow): return True
+    return _orig_exists(path)
+
+def _patched_isfile(path):
+    shadow = _get_shadow_path(path)
+    if shadow and _orig_isfile(shadow): return True
+    return _orig_isfile(path)
+
+def _patched_listdir(path):
+    return _orig_listdir(_redirect_read_write(path))
+
+# Apply global patches
 os.makedirs = _patched_makedirs
 os.mkdir = _patched_mkdir
 builtins.open = _patched_open
+os.rename = _patched_rename
+os.replace = _patched_replace
+os.path.exists = _patched_exists
+os.path.isfile = _patched_isfile
+os.listdir = _patched_listdir
 
-# Pre-empitvely set ROOT_DIR for the Assets class if possible
-# (This helps even if the monkeypatch misses something)
+# Initialize Assets ROOT_DIR immediately
 try:
     import sign_language_translator as slt
     slt.Assets.ROOT_DIR = WRITABLE_BASE
