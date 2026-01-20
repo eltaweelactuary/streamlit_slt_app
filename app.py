@@ -78,6 +78,17 @@ os.path.exists = _patched_exists
 os.path.isfile = _patched_isfile
 os.listdir = _patched_listdir
 
+# --- ENCODING FIX: Standard Linux/Streamlit lack H.264 encoder ---
+_orig_VideoWriter = cv2.VideoWriter
+def _patched_VideoWriter(filename, fourcc, *args, **kwargs):
+    # Check for h264/avc1 variations
+    # 0x34363268 (h264), 0x31637661 (avc1)
+    if fourcc in [0x34363268, 0x31637661, cv2.VideoWriter_fourcc(*'avc1'), cv2.VideoWriter_fourcc(*'h264')]:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Fallback to mp4v (usually available)
+    return _orig_VideoWriter(filename, fourcc, *args, **kwargs)
+cv2.VideoWriter = _patched_VideoWriter
+# -----------------------------------------------------------------
+
 # Initialize Assets ROOT_DIR immediately
 try:
     import sign_language_translator as slt
