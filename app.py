@@ -158,7 +158,9 @@ def load_or_train_core(core, translator):
     if core.classifier: return True
     st.info("🔧 Building Next-Gen Landmark Dictionary (First run)...")
     core.build_landmark_dictionary(translator)
+    st.info("🧠 Training CLR Core Brain (v2 Matrix)...")
     if core.train_core():
+        print("🚀 SLT Core Brain Training Complete!")
         st.success("✅ Core Model trained successfully.")
         return True
     return False

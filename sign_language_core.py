@@ -119,19 +119,42 @@ class SignLanguageCore:
         
         if not self.landmark_dict: return False
         
-        # We train on the MEAN of the sequence for simple classification
-        X = np.array([np.mean(seq, axis=0) for seq in self.landmark_dict.values()])
-        y = np.array(list(self.landmark_dict.keys()))
+        # --- BEST PRACTICE: DATA AUGMENTATION ---
+        # With only 1 video per word, we must create synthetic variants
+        X_aug = []
+        y_aug = []
+        
+        print(f"🧬 Generating Synthetic Data Augmentation for {len(self.landmark_dict)} words...")
+        for word, seq in self.landmark_dict.items():
+            mean_vec = np.mean(seq, axis=0)
+            # 1. Original
+            X_aug.append(mean_vec)
+            y_aug.append(word)
+            
+            # 2. Add variants (Noise + Scaling)
+            for _ in range(50): # Create 50 variations per word
+                noise = np.random.normal(0, 0.015, mean_vec.shape)
+                scale = np.random.uniform(0.95, 1.05)
+                variant = (mean_vec + noise) * scale
+                X_aug.append(variant)
+                y_aug.append(word)
+        
+        X = np.array(X_aug)
+        y = np.array(y_aug)
+        
+        print(f"🧠 Training SLT Brain on {len(X)} samples (Augmented) with {X.shape[1]} features...")
         
         self.label_encoder = LabelEncoder()
         y_encoded = self.label_encoder.fit_transform(y)
         
-        self.classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+        self.classifier = RandomForestClassifier(n_estimators=100, max_depth=15, min_samples_split=5, random_state=42)
         self.classifier.fit(X, y_encoded)
         
+        print(f"💾 Saving SLT Brain to {self.model_path}...")
         # Save Model
         with open(self.model_path, 'wb') as f:
             pickle.dump((self.classifier, self.label_encoder), f)
+        print("✅ SLT Brain Saved and Ready!")
         return True
 
     def load_core(self):
@@ -228,13 +251,12 @@ class DigitalHumanRenderer:
                     cv2.circle(canvas, (px, py), 4, color, -1)
                     cv2.circle(canvas, (px, py), 2, (255, 255, 255), -1)
 
-            # Hand DNA (Cyan)
+            # Hand DNA (Cyan) - 21 pts each
             draw_points(frame_vec, 0, 21, (56, 189, 248)) 
             draw_points(frame_vec, 63, 21, (56, 189, 248)) 
-            # Pose DNA (Green)
-            draw_points(frame_vec, 126, 25, (34, 197, 94))
-            # Face Intelligence DNA (Yellow/White for focus)
-            draw_points(frame_vec, 201, 40, (255, 255, 255)) 
+            # Pose DNA (Green) - 33 pts
+            draw_points(frame_vec, 126, 33, (34, 197, 94))
+            # Face landmarks removed for performance & stability in v2
             
             # HUD/UI Overlay for 'Digital Human' Look
             cv2.line(canvas, (0, 40), (width, 40), (56, 189, 248), 1)
