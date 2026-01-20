@@ -360,7 +360,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("🔬 **Powered by:** MediaPipe Holistic + Random Forest | **Self-Contained: No manual setup required!**")
+    st.markdown("Designed by **Ahmed Eltaweel** | AI Architect @ Konecta 🚀")
 
 if __name__ == "__main__":
     main()
