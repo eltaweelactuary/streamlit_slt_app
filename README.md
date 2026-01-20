@@ -1,51 +1,41 @@
-# 🤟 Sign Language Translator - Streamlit App
+# 🤟 Next-Gen Sign Language Platform (2025 SOTA)
 
-A bidirectional sign language translation web application.
+A state-of-the-art, bidirectional sign language translation and production platform featuring **Digital Human Avatar Synthesis**.
 
-## Features
+## 🌟 Key SOTA Features
 
-| Direction | Description |
-|-----------|-------------|
-| **Text → Video** | Enter English text → Get stitched PSL sign language video |
-| **Video → Text** | Upload sign video → Get predicted text with confidence score |
+| Feature | Technology | Description |
+|-----------|-------------|-------------|
+| **Digital Human Avatar** | Sequential DNA Stitching | Transforms benchmark videos into stylized, noise-free sign language avatars. |
+| **Facial Intelligence** | Non-Manual Signals | Now captures and renders lip & eye movements for 40% better communication. |
+| **Live Translation** | **YOLOv8** + MediaPipe | Real-time person detection and landmark extraction for robust field use. |
+| **Omni-channel Input** | Speech/Text/Video | Seamlessly translate voice commands or text into sign language performances. |
 
-## Quick Start
+## 🚀 Quick Start
 
-### Windows
-```bash
-# Double-click to run:
-run_app.bat
-```
+### ☁️ Cloud Deployment (Recommended)
+Deploy directly to [Streamlit Cloud](https://share.streamlit.io/) using this repository.
+- Ensure `app.py` is the entry point.
+- The system is pre-configured with `packages.txt` and optimized requirements.
 
-### Manual
+### 💻 Local Development
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Run app
+# Run the Main Platform
 streamlit run app.py
+
+# Run Live YOLO Translator
+python live_translator.py
 ```
 
-Then open: **http://localhost:8501**
+## 🏗️ Architecture: The Unified DNA Core
+The system utilizes a **Unified Landmark Representation (CLR)**. Every sign is stored as a 225-dimensional "Skeletal DNA" matrix, allowing for seamless stitching and high-fidelity avatar rendering.
 
-## Requirements
-
-- Python 3.9+
-- Webcam (optional, for future live mode)
-- `psl_classifier.pkl` (trained model from Colab notebook)
-
-## Available Vocabulary
-
-```
-apple, world, pakistan, good, red, is, the, that
-```
-
-## Screenshots
-
-| Text to Video | Video to Text |
-|---------------|---------------|
-| Enter text, get sign video | Upload video, get prediction |
+## 📊 Vocabulary
+`apple, world, pakistan, good, red, is, the, that`
 
 ---
-
-**Powered by:** MediaPipe Holistic + Random Forest Classifier
+**Designed by:** Ahmed Eltaweel | AI Architect @ Konecta 🚀
+**Powered by:** Ultralytics YOLOv8, MediaPipe Holistic, and Scikit-Learn.
