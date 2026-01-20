@@ -43,16 +43,21 @@ PSL_VOCABULARY = {
     "that": "وہ"
 }
 
-DATA_DIR = "./psl_cv_assets"
-VIDEOS_DIR = "./psl_cv_assets/videos"
-MODEL_PATH = "./psl_classifier.pkl"
+# --- Persistence Paths (Streamlit Cloud Fix) ---
+WRITABLE_ROOT = os.path.join(tempfile.gettempdir(), "slt_app_data")
+os.makedirs(WRITABLE_ROOT, exist_ok=True)
+
+DATA_DIR = os.path.join(WRITABLE_ROOT, "psl_cv_assets")
+VIDEOS_DIR = os.path.join(DATA_DIR, "videos")
+MODEL_PATH = os.path.join(DATA_DIR, "psl_classifier.pkl")
+# -----------------------------------------------
 
 # ===================== CORE INITIALIZATION =====================
 from sign_language_core import SignLanguageCore, DigitalHumanRenderer
 
 @st.cache_resource
 def get_slt_core():
-    core = SignLanguageCore()
+    core = SignLanguageCore(data_dir=DATA_DIR)
     core.load_core()
     return core
 
@@ -63,6 +68,46 @@ def get_avatar_renderer():
 @st.cache_resource
 def load_slt_engine():
     import sign_language_translator as slt
+    import builtins
+    
+    # --- PRO-ACTIVE PERSISTENCE FIX ---
+    assets_dir = os.path.join(tempfile.gettempdir(), "slt_assets_v2")
+    os.makedirs(assets_dir, exist_ok=True)
+    
+    # 1. Direct path redirection
+    slt.Assets.ROOT_DIR = assets_dir
+    
+    # 2. Aggressive Monkeypatching
+    original_open = builtins.open
+    original_makedirs = os.makedirs
+    original_mkdir = os.mkdir
+
+    def is_protected(path):
+        return "site-packages/sign_language_translator" in str(path).replace("\\", "/")
+
+    def patched_makedirs(name, mode=0o777, exist_ok=False):
+        if is_protected(name):
+            name = os.path.join(assets_dir, os.path.basename(name))
+        return original_makedirs(name, mode, exist_ok)
+
+    def patched_mkdir(path, mode=0o777, *args, **kwargs):
+        if is_protected(path):
+            path = os.path.join(assets_dir, os.path.basename(path))
+        return original_mkdir(path, mode, *args, **kwargs)
+
+    def patched_open(file, *args, **kwargs):
+        if is_protected(file):
+            mode = args[0] if args else kwargs.get('mode', 'r')
+            if 'w' in mode or 'a' in mode or '+' in mode:
+                file = os.path.join(assets_dir, os.path.basename(str(file)))
+        return original_open(file, *args, **kwargs)
+
+    # Apply patches
+    builtins.open = patched_open
+    os.makedirs = patched_makedirs
+    os.mkdir = patched_mkdir
+    # ---------------------------------------
+
     translator = slt.models.ConcatenativeSynthesis(
         text_language="urdu",
         sign_language="psl",
