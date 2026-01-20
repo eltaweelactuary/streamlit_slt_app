@@ -15,12 +15,14 @@ class SignLanguageCore:
         self.data_dir = Path(data_dir)
         self.videos_dir = self.data_dir / "videos"
         self.landmarks_dir = self.data_dir / "landmarks"
-        self.model_path = self.data_dir / "core_classifier.pkl"
+        self.models_dir = self.data_dir / "models" # Added models directory
+        self.model_path = self.models_dir / "clr_model_v2.pkl" # Renamed model path
         
         # Create directories
         try:
             self.videos_dir.mkdir(parents=True, exist_ok=True)
             self.landmarks_dir.mkdir(parents=True, exist_ok=True)
+            self.models_dir.mkdir(parents=True, exist_ok=True) # Create models directory
         except Exception as e:
             print(f"Warning: Could not create directories in {self.data_dir}: {e}")
         
@@ -70,8 +72,7 @@ class SignLanguageCore:
                 frame_features = []
                 frame_features.extend(get_coords(results.left_hand_landmarks, 21))
                 frame_features.extend(get_coords(results.right_hand_landmarks, 21))
-                frame_features.extend(get_coords(results.pose_landmarks, 25))
-                frame_features.extend(get_coords(results.face_landmarks, 40))
+                frame_features.extend(get_coords(results.pose_landmarks, 33))
                 
                 features_sequence.append(frame_features)
                 count += 1
@@ -152,7 +153,13 @@ class SignLanguageCore:
         if self.classifier is None or landmarks_vector is None:
             return None, 0
             
-        features = landmarks_vector.reshape(1, -1)
+        # Landmarks arrive as a temporal sequence (frames, features)
+        # We must average them to match the training vector (1, features)
+        if len(landmarks_vector.shape) > 1:
+            features = np.mean(landmarks_vector, axis=0).reshape(1, -1)
+        else:
+            features = landmarks_vector.reshape(1, -1)
+        
         prob = self.classifier.predict_proba(features)[0]
         max_idx = np.argmax(prob)
         label = self.label_encoder.inverse_transform([max_idx])[0]
