@@ -18,8 +18,11 @@ class SignLanguageCore:
         self.model_path = self.data_dir / "core_classifier.pkl"
         
         # Create directories
-        self.videos_dir.mkdir(parents=True, exist_ok=True)
-        self.landmarks_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.videos_dir.mkdir(parents=True, exist_ok=True)
+            self.landmarks_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Warning: Could not create directories in {self.data_dir}: {e}")
         
         # MediaPipe Setup
         self.mp_holistic = mp.solutions.holistic
