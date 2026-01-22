@@ -144,8 +144,11 @@ def get_avatar_renderer():
 @st.cache_resource
 def load_slt_engine():
     import sign_language_translator as slt
-    # Explicitly ensure the library uses our writable path
+    # Explicitly ensure the library uses our writable path (Shadow Persistence)
     slt.Assets.ROOT_DIR = WRITABLE_BASE
+    # Sync core data directory to the same base to avoid redundant downloads
+    core_data_dir = os.path.join(WRITABLE_BASE, "app_internal_data")
+    os.makedirs(core_data_dir, exist_ok=True)
     
     translator = slt.models.ConcatenativeSynthesis(
         text_language="urdu",
@@ -236,20 +239,22 @@ def main():
                 if v_clips:
                     col_orig, col_av = st.columns(2)
                     with col_orig:
-                        st.markdown("### 📽️ Source Benchmark")
+                        st.markdown("### 📽️ Source Benchmark (Concatenative)")
                         f_orig = v_clips[0]
                         for c in v_clips[1:]: f_orig = f_orig + c
                         p_orig = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                         f_orig.save(p_orig, overwrite=True)
                         st.video(p_orig)
+                        st.caption("Standard library stitching - can be jerky.")
                         
                     with col_av:
-                        st.markdown("### 🤖 Seamless Digital Avatar")
+                        st.markdown("### 🤖 Seamless AI Human (Takhyeet)")
                         if dna_list:
                             out_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                             renderer.stitch_and_render(dna_list, out_p)
                             st.video(out_p)
-                    st.success("✅ Performance Complete")
+                            st.caption("Internal 'Takhyeet' engine - smooth landmark transitions.")
+                    st.success("✅ Multi-Phase Synthesis Complete")
                 else:
                     st.error("❌ Words not in Benchmark.")
 

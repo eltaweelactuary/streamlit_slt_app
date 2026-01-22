@@ -273,8 +273,37 @@ class DigitalHumanRenderer:
         out.release()
         return output_path
 
-    def stitch_and_render(self, dna_list, output_path):
-        """Concatenates multiple DNA sequences for a seamless full-sentence performance"""
+    def stitch_and_render(self, dna_list, output_path, transition_frames=10):
+        """
+        Concatenates multiple DNA sequences with seamless transitions (Interpolation).
+        This is the 'Best Practice' for avoiding jerky movements between words.
+        """
         if not dna_list: return None
-        full_sequence = np.concatenate(dna_list, axis=0)
+        
+        # 1. Add 'Neutral Static Pose' at the very beginning (hold first frame)
+        stitched_sequence = [[dna_list[0][0]] * 5]
+        stitched_sequence.append(dna_list[0])
+        
+        for i in range(1, len(dna_list)):
+            prev_seq = dna_list[i-1]
+            curr_seq = dna_list[i]
+            
+            # Create Interpolation (Takhyeet) between end of prev and start of curr
+            last_frame = prev_seq[-1]
+            first_frame = curr_seq[0]
+            
+            interpolation = []
+            for t in range(1, transition_frames + 1):
+                alpha = t / (transition_frames + 1)
+                interp_frame = (1 - alpha) * last_frame + alpha * first_frame
+                interpolation.append(interp_frame)
+            
+            stitched_sequence.append(np.array(interpolation))
+            stitched_sequence.append(curr_seq)
+            
+        # 2. Add 'Neutral Static Pose' at the very end (hold last frame)
+        neutral_end = [dna_list[-1][-1]] * 5
+        stitched_sequence.append(np.array(neutral_end))
+        
+        full_sequence = np.concatenate(stitched_sequence, axis=0)
         return self.render_landmark_dna(full_sequence, output_path)
