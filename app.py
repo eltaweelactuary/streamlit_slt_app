@@ -80,13 +80,55 @@ os.path.isfile = _patched_isfile
 os.listdir = _patched_listdir
 
 # --- ENCODING FIX: Standard Linux/Streamlit lack H.264 encoder ---
+import subprocess
+
+def _optimize_video_for_web(path):
+    """Converts a video to H.264 using ffmpeg to ensure browser compatibility."""
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return
+    
+    # We use a temp file for output
+    temp_out = path + ".optimized.mp4"
+    try:
+        # ffmpeg command to convert to H.264 (libx264)
+        # -y: overwrite
+        # -preset ultrafast: for speed
+        # -vcodec libx264: the standard for web
+        cmd = [
+            "ffmpeg", "-y", "-i", path, 
+            "-vcodec", "libx264", 
+            "-pix_fmt", "yuv420p", 
+            "-preset", "ultrafast", 
+            temp_out
+        ]
+        subprocess.run(cmd, capture_output=True, check=True)
+        if os.path.exists(temp_out) and os.path.getsize(temp_out) > 0:
+            os.replace(temp_out, path)
+            print(f"🎬 Video Optimized: {path}")
+    except Exception as e:
+        print(f"⚠️ Video Optimization Failed for {path}: {e}")
+        if os.path.exists(temp_out): os.remove(temp_out)
+
+class _VideoWriterWrapper:
+    def __init__(self, writer, filename):
+        self.writer = writer
+        self.filename = filename
+    def write(self, frame):
+        self.writer.write(frame)
+    def release(self):
+        self.writer.release()
+        _optimize_video_for_web(self.filename)
+    def __getattr__(self, name):
+        return getattr(self.writer, name)
+
 _orig_VideoWriter = cv2.VideoWriter
 def _patched_VideoWriter(filename, fourcc, *args, **kwargs):
-    # Check for h264/avc1 variations
-    # 0x34363268 (h264), 0x31637661 (avc1)
-    if fourcc in [0x34363268, 0x31637661, cv2.VideoWriter_fourcc(*'avc1'), cv2.VideoWriter_fourcc(*'h264')]:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Fallback to mp4v (usually available)
-    return _orig_VideoWriter(filename, fourcc, *args, **kwargs)
+    # Force mp4v for high-compatibility saving on Linux
+    # Then we optimize it to H.264 on release
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
+    writer = _orig_VideoWriter(filename, fourcc, *args, **kwargs)
+    return _VideoWriterWrapper(writer, filename)
+
 cv2.VideoWriter = _patched_VideoWriter
 # -----------------------------------------------------------------
 

@@ -281,7 +281,7 @@ class DigitalHumanRenderer:
         if not dna_list: return None
         
         # 1. Add 'Neutral Static Pose' at the very beginning (hold first frame)
-        stitched_sequence = [[dna_list[0][0]] * 5]
+        stitched_sequence = [np.array([dna_list[0][0]] * 5)]
         stitched_sequence.append(dna_list[0])
         
         for i in range(1, len(dna_list)):
@@ -302,8 +302,8 @@ class DigitalHumanRenderer:
             stitched_sequence.append(curr_seq)
             
         # 2. Add 'Neutral Static Pose' at the very end (hold last frame)
-        neutral_end = [dna_list[-1][-1]] * 5
-        stitched_sequence.append(np.array(neutral_end))
+        neutral_end = np.array([dna_list[-1][-1]] * 5)
+        stitched_sequence.append(neutral_end)
         
         full_sequence = np.concatenate(stitched_sequence, axis=0)
         return self.render_landmark_dna(full_sequence, output_path)
