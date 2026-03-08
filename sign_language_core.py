@@ -231,79 +231,106 @@ class DigitalHumanRenderer:
         self.link_spec = self.mp_drawing.DrawingSpec(color=(56, 189, 248), thickness=3)
 
     def render_landmark_dna(self, landmark_sequence, output_path, width=640, height=480, fps=30):
-        """Renders raw landmarks into a stylized digital human video clip"""
+        """Renders raw landmarks into a stylized digital human video clip (Skeletal Mode)"""
         if landmark_sequence is None or len(landmark_sequence) == 0: return None
-        
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-        # Smooth interpolation could be added here for SOTA transitions
-        
         for frame_vec in landmark_sequence:
             canvas = np.zeros((height, width, 3), dtype=np.uint8)
             canvas[:] = (15, 23, 42) # Slate-900 Background
-            
             cx, cy = width // 2, height // 2
-            
             def draw_points(points, start_idx, num_points, color):
                 for i in range(num_points):
                     idx = start_idx + (i * 3)
                     if idx + 2 >= len(points): break
-                    # Scale and offset DNA to screen coordinates
                     px = int(cx + (points[idx] * width * 0.8))
                     py = int(cy + (points[idx+1] * height * 0.8))
-                    # Glow effect
                     cv2.circle(canvas, (px, py), 4, color, -1)
                     cv2.circle(canvas, (px, py), 2, (255, 255, 255), -1)
-
-            # Hand DNA (Cyan) - 21 pts each
-            draw_points(frame_vec, 0, 21, (56, 189, 248)) 
+            draw_points(frame_vec, 0, 21, (56, 189, 248)) # Hands
             draw_points(frame_vec, 63, 21, (56, 189, 248)) 
-            # Pose DNA (Green) - 33 pts
-            draw_points(frame_vec, 126, 33, (34, 197, 94))
-            # Face landmarks removed for performance & stability in v2
-            
-            # HUD/UI Overlay for 'Digital Human' Look
+            draw_points(frame_vec, 126, 33, (34, 197, 94)) # Pose
             cv2.line(canvas, (0, 40), (width, 40), (56, 189, 248), 1)
-            cv2.putText(canvas, "STATE-OF-THE-ART DIGITAL HUMAN AVATAR", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (56, 189, 248), 1)
-            cv2.putText(canvas, "LATEST ACCESSIBILITY SYNTHESIS ACTIVE", (10, height-20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (34, 197, 94), 1)
-            
+            cv2.putText(canvas, "MODE: SKELETAL BENCHMARK", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (56, 189, 248), 1)
             out.write(canvas)
-        
         out.release()
         return output_path
 
-    def stitch_and_render(self, dna_list, output_path, transition_frames=10):
-        """
-        Concatenates multiple DNA sequences with seamless transitions (Interpolation).
-        This is the 'Best Practice' for avoiding jerky movements between words.
-        """
-        if not dna_list: return None
+    def render_neo_avatar(self, landmark_sequence, output_path, width=640, height=480, fps=30):
+        """Renders landmarks into a premium 3D-style Neo-Avatar (Animate Mode)"""
+        if landmark_sequence is None or len(landmark_sequence) == 0: return None
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
-        # 1. Add 'Neutral Static Pose' at the very beginning (hold first frame)
+        for frame_vec in landmark_sequence:
+            canvas = np.zeros((height, width, 3), dtype=np.uint8)
+            canvas[:] = (30, 41, 59) # Slate-800 Background
+            cx, cy = width // 2, height // 2
+            
+            def get_p(idx):
+                i = idx * 3
+                return (int(cx + (frame_vec[i] * width * 0.8)), int(cy + (frame_vec[i+1] * height * 0.8)))
+
+            # 1. Draw Volumetric Torso (Pose 11, 12, 23, 24 are shoulders/hips)
+            # Pose starts at 126. Index 11 is 126 + 11*3 = 159
+            try:
+                p_l_sh = get_p(11 + 42) # Shifted by 42 (Hands 21+21)
+                p_r_sh = get_p(12 + 42)
+                p_l_hip = get_p(23 + 42)
+                p_r_hip = get_p(24 + 42)
+                poly = np.array([p_l_sh, p_r_sh, p_r_hip, p_l_hip], np.int32)
+                cv2.fillPoly(canvas, [poly], (71, 85, 105)) # Torso Skin
+                cv2.polylines(canvas, [poly], True, (241, 245, 249), 2)
+                
+                # Head (Pose 0 is Nose)
+                p_nose = get_p(0 + 42)
+                cv2.circle(canvas, p_nose, 35, (226, 232, 240), -1)
+                cv2.circle(canvas, p_nose, 35, (241, 245, 249), 2)
+            except: pass
+
+            # 2. Draw Limbs (Thick Tubes)
+            def draw_limb(i1, i2, color, thickness=12):
+                try: cv2.line(canvas, get_p(i1+42), get_p(i2+42), color, thickness)
+                except: pass
+
+            draw_limb(11, 13, (148, 163, 184), 15) # Left Arm
+            draw_limb(13, 15, (148, 163, 184), 12)
+            draw_limb(12, 14, (148, 163, 184), 15) # Right Arm
+            draw_limb(14, 16, (148, 163, 184), 12)
+
+            # 3. Draw Hands (High Fidelity Fluid)
+            def draw_hand(start_idx, color):
+                for i in range(21):
+                    idx = (start_idx + i) * 3
+                    px, py = int(cx + (frame_vec[idx] * width * 0.8)), int(cy + (frame_vec[idx+1] * height * 0.8))
+                    cv2.circle(canvas, (px, py), 5, color, -1)
+            
+            draw_hand(0, (56, 189, 248))  # Cyan hand
+            draw_hand(21, (244, 114, 182)) # Pink hand for distinction
+
+            cv2.putText(canvas, "NEO-AVATAR PREMIUM ANIMATION", (width-300, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            out.write(canvas)
+            
+        out.release()
+        return output_path
+
+    def stitch_landmarks(self, dna_list, transition_frames=10):
+        """Pure logic for stitching DNA sequences into a full temporal matrix"""
+        if not dna_list: return None
         stitched_sequence = [np.array([dna_list[0][0]] * 5)]
         stitched_sequence.append(dna_list[0])
-        
         for i in range(1, len(dna_list)):
-            prev_seq = dna_list[i-1]
-            curr_seq = dna_list[i]
-            
-            # Create Interpolation (Takhyeet) between end of prev and start of curr
-            last_frame = prev_seq[-1]
-            first_frame = curr_seq[0]
-            
-            interpolation = []
+            prev_seq, curr_seq = dna_list[i-1], dna_list[i]
+            last_f, first_f = prev_seq[-1], curr_seq[0]
+            interp = []
             for t in range(1, transition_frames + 1):
                 alpha = t / (transition_frames + 1)
-                interp_frame = (1 - alpha) * last_frame + alpha * first_frame
-                interpolation.append(interp_frame)
-            
-            stitched_sequence.append(np.array(interpolation))
+                interp.append((1 - alpha) * last_f + alpha * first_f)
+            stitched_sequence.append(np.array(interp))
             stitched_sequence.append(curr_seq)
-            
-        # 2. Add 'Neutral Static Pose' at the very end (hold last frame)
-        neutral_end = np.array([dna_list[-1][-1]] * 5)
-        stitched_sequence.append(neutral_end)
-        
-        full_sequence = np.concatenate(stitched_sequence, axis=0)
-        return self.render_landmark_dna(full_sequence, output_path)
+        stitched_sequence.append(np.array([dna_list[-1][-1]] * 5))
+        return np.concatenate(stitched_sequence, axis=0)
+
+    def stitch_and_render(self, dna_list, output_path, transition_frames=10):
+        full_seq = self.stitch_landmarks(dna_list, transition_frames)
+        return self.render_landmark_dna(full_seq, output_path)

@@ -279,23 +279,34 @@ def main():
                         status_placeholder.warning(f"📖 Word **{w}** not in vocabulary.") # Changed to use placeholder
                 
                 if v_clips:
-                    col_orig, col_av = st.columns(2)
+                    full_dna = renderer.stitch_landmarks(dna_list)
+                    
+                    col_orig, col_av, col_neo = st.columns(3)
                     with col_orig:
-                        st.markdown("### 📽️ Source Benchmark (Concatenative)")
+                        st.markdown("### 📽️ Source Benchmark")
                         f_orig = v_clips[0]
                         for c in v_clips[1:]: f_orig = f_orig + c
                         p_orig = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                         f_orig.save(p_orig, overwrite=True)
                         st.video(p_orig)
-                        st.caption("Standard library stitching - can be jerky.")
+                        st.caption("Standard library stitching.")
                         
                     with col_av:
-                        st.markdown("### 🤖 Seamless AI Human (Takhyeet)")
-                        if dna_list:
+                        st.markdown("### 🤖 Seamless Skeletal")
+                        if full_dna is not None:
                             out_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                            renderer.stitch_and_render(dna_list, out_p)
+                            renderer.render_landmark_dna(full_dna, out_p)
                             st.video(out_p)
-                            st.caption("Internal 'Takhyeet' engine - smooth landmark transitions.")
+                            st.caption("Internal 'Takhyeet' engine.")
+                            
+                    with col_neo:
+                        st.markdown("### 🦾 Neo-Avatar 3D")
+                        if full_dna is not None:
+                            out_neo = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                            renderer.render_neo_avatar(full_dna, out_neo)
+                            st.video(out_neo)
+                            st.caption("Premium volumetric animation.")
+                            
                     st.success("✅ Multi-Phase Synthesis Complete")
                 else:
                     st.error("❌ Words not in Benchmark.")
